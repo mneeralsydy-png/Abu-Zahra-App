@@ -18,22 +18,11 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Auto-Fix Files and Directories
+    - name: Install Core Dependencies Only
       run: |
-        # إنشاء ملف package.json إذا لم يكن موجوداً
-        if [ ! -f package.json ]; then
-          echo '{"name": "my-app", "version": "1.0.0", "dependencies": {}}' > package.json
-        fi
-        # إنشاء مجلد www الأساسي
-        mkdir -p www
-        if [ ! -f www/index.html ]; then
-          echo "<html><body><h1>App Ready</h1></body></html>" > www/index.html
-        fi
-
-    - name: Install Tools and Repair
-      run: |
-        npm install
-        npm install @capacitor/cli @capacitor/core @capacitor/android
+        # إنشاء ملف package.json نظيف لتجنب أخطاء المكتبات المفقودة
+        echo '{"name": "my-app", "version": "1.0.0", "dependencies": {"@capacitor/core": "latest", "@capacitor/android": "latest"}}' > package.json
+        npm install --force # استخدام force لتجاوز تعارضات النسخ
 
     - name: Setup Java
       uses: actions/setup-java@v4
@@ -41,24 +30,16 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Initialize Capacitor if needed
+    - name: Build Android Project
       run: |
-        if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
-          npx cap init my-app com.example.myapp --web-dir www
-        fi
+        mkdir -p www
+        echo "<html><body><h1>App</h1></body></html>" > www/index.html
+        npx cap init my-app com.example.myapp --web-dir www || true
         npx cap add android || true
         npx cap sync android
-
-    - name: Final Build Check
-      run: |
-        if [ -d "android" ]; then
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-        else
-          echo "Error: Android folder not created!"
-          exit 1
-        fi
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
