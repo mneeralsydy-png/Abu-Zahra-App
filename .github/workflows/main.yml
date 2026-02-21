@@ -18,41 +18,44 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Repair Project Structure
+      - name: Clean Project Structure
         run: |
-          # تنظيف الملفات القديمة لضمان بناء جديد كلياً
           rm -rf android
           rm -rf www
-          # إنشاء الملفات الأساسية فقط لتجنب أخطاء المكتبات المفقودة
           echo '{"name": "my-app", "version": "1.0.0", "dependencies": {"@capacitor/core": "latest", "@capacitor/android": "latest"}}' > package.json
           mkdir -p www
           echo "<html><body><h1>App Ready</h1></body></html>" > www/index.html
 
-      - name: Install Core Tools
+      - name: Install Capacitor Tools
         run: |
           npm install --force
           npm install @capacitor/cli @capacitor/core @capacitor/android
 
-      - name: Setup Java (Fix for Image 45)
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21' # تم التحديث إلى 21 لحل خطأ invalid source release
+          java-version: '17'
 
-      - name: Initialize Android Project
+      - name: Create and Fix Android Project
         run: |
           npx cap init my-app com.example.myapp --web-dir www || true
           npx cap add android
+          # حل مشكلة التعارض (Duplicate Classes) الظاهرة في الصور 46 و 47
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
           npx cap sync android
 
-      - name: Build APK (Final Action)
+      - name: Build Final APK
         run: |
           cd android
           chmod +x gradlew
+          # تنظيف وبناء لضمان عدم وجود ملفات مكررة
+          ./gradlew clean
           ./gradlew assembleDebug
 
       - name: Upload APK File
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
+          name: my-app-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
