@@ -1,4 +1,4 @@
-name: Abu Zahra App Ultimate Fix
+name: Abu Zahra App Permissions Final Fix
 
 on:
   push:
@@ -18,26 +18,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Hard Reset & Clean Build
+      - name: Environment Setup
         run: |
-          # حذف المجلدات القديمة لضمان بناء نظيف 100%
           rm -rf android
-          
-          # إنشاء ملف package.json يحتوي فقط على المكتبات التي تعمل فعلياً
-          # حذفنا مكتبة contacts المسببة لخطأ 404 في الصورة 18
-          echo '{
-            "name": "abu-zahra-app",
-            "version": "1.0.0",
-            "dependencies": {
-              "@capacitor/core": "latest",
-              "@capacitor/android": "latest",
-              "@capacitor/network": "latest"
-            }
-          }' > package.json
-
-      - name: Install Verified Tools
-        run: |
-          # تثبيت قسري للمكتبات الأساسية فقط لتجنب أخطاء الصورة 16 و 18
+          # إنشاء package.json أساسي لضمان وجود Capacitor
+          echo '{"name":"abu-zahra-app","version":"1.0.0","dependencies":{"@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
           npm install --force
 
       - name: Setup Java 21
@@ -46,18 +31,19 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Bridge & Permissions Fix (The Solution)
+      - name: Build Android with Permissions
         run: |
-          # ربط مجلد www الخاص بك
+          # إنشاء المشروع
           npx cap init Abu-Zahra com.example.abuzahra --web-dir www || true
           npx cap add android
           
-          # إجبار الأندرويد على قبول الاتصالات (حل مشكلة الاتصال غير الحقيقي)
-          # سنقوم بتعديل ملف AndroidManifest برمجياً لإضافة الأذونات
+          # --- تفعيل الأذونات والإنترنت مباشرة عبر استبدال الملف ---
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.READ_CONTACTS" />
+              <uses-permission android:name="android.permission.WRITE_CONTACTS" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <application
                   android:allowBackup="true"
@@ -65,7 +51,7 @@ jobs:
                   android:label="Abu Zahra"
                   android:roundIcon="@mipmap/ic_launcher_round"
                   android:supportsRtl="true"
-                  android:usesCleartextTraffic="true" 
+                  android:usesCleartextTraffic="true"
                   android:theme="@style/AppTheme">
                   <activity
                       android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
@@ -83,7 +69,7 @@ jobs:
           </manifest>
           EOF
 
-          # حل مشكلة Duplicate Class الظاهرة في الصورة 17
+          # حل تعارض مكتبات Kotlin (الصورة 17)
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           
@@ -95,8 +81,8 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload Success APK
+      - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
-          name: Abu-Zahra-Final-Fixed
+          name: Abu-Zahra-Final-Working
           path: android/app/build/outputs/apk/debug/app-debug.apk
