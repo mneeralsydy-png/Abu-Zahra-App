@@ -1,4 +1,4 @@
-name: Abu Zahra App Final Fix
+name: Abu Zahra App Super Ultimate Fix
 
 on:
   push:
@@ -13,40 +13,34 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Build and Fix Everything
+      - name: One-Step Comprehensive Build
         run: |
-          # 1. تنظيف شامل ومسح أي أخطاء سابقة
-          rm -rf android
+          # 1. تنظيف شامل للأخطاء السابقة (صور 17، 21، 23)
+          rm -rf android package-lock.json node_modules
           
-          # 2. إنشاء ملف الإعدادات الأساسي
-          echo '{"name":"abu-zahra-app","version":"1.0.0","dependencies":{"@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
+          # 2. إنشاء ملف تبعات نظيف يتجاهل المكتبات المفقودة (صورة 18)
+          echo '{"name":"app","version":"1.0.0","dependencies":{"@capacitor/cli":"latest","@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
           
-          # 3. تثبيت الأدوات بشكل مباشر لضمان عمل الأوامر (حل خطأ الصورة 21)
-          npm install @capacitor/cli @capacitor/core @capacitor/android --force
+          # 3. تثبيت الأدوات وبناء المشروع في خطوة واحدة لضمان عدم ضياع npx (صورة 21)
+          npm install --force
           
-          # 4. بناء هيكل الأندرويد
+          # 4. تهيئة الأندرويد
           npx cap init Abu-Zahra com.example.abuzahra --web-dir www || true
           npx cap add android
           
-          # 5. تفعيل الأذونات والإنترنت (حل مشكلة الاتصال غير الحقيقي)
+          # 5. تفعيل الأذونات والإنترنت قسرياً (حل مشكلة الاتصال والأذونات)
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.READ_CONTACTS" />
-              <uses-permission android:name="android.permission.WRITE_CONTACTS" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+              <uses-permission android:name="android.permission.READ_CONTACTS" />
               <application
                   android:allowBackup="true"
                   android:icon="@mipmap/ic_launcher"
@@ -71,17 +65,23 @@ jobs:
           </manifest>
           EOF
 
-          # 6. مزامنة الملفات النهائية
+          # 6. حل مشكلة Duplicate Class (صورة 17 و 23)
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          sed -i '/dependencies {/a \    constraints { implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10") }' android/app/build.gradle
+          
+          # 7. المزامنة النهائية
           npx cap sync android
 
-      - name: Final Build APK
+      - name: Final APK Production
         run: |
           cd android
           chmod +x gradlew
+          ./gradlew clean
           ./gradlew assembleDebug
 
-      - name: Upload Success APK
+      - name: Upload Final Working APK
         uses: actions/upload-artifact@v4
         with:
-          name: Abu-Zahra-Final-Working
+          name: Abu-Zahra-Working-App
           path: android/app/build/outputs/apk/debug/app-debug.apk
