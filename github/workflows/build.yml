@@ -1,4 +1,4 @@
-Name: Build Android APK
+name: Build Android APK
 
 on:
   push:
@@ -25,12 +25,15 @@ jobs:
         java-version: '17'
 
     - name: Clean Gradle Cache
-      run: cd android && ./gradlew clean
+      run: |
+        if [ -d "android" ]; then
+          cd android && ./gradlew clean
+        fi
 
     - name: Build Android APK
       run: |
         npm install @capacitor/android
-        npx cap add android
+        npx cap add android || true
         npx cap sync android
         cd android
         chmod +x gradlew
