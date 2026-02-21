@@ -1,4 +1,4 @@
-name: Abu Zahra App Final Victory
+name: Abu Zahra App Final Fix Java Sync
 
 on:
   push:
@@ -13,33 +13,29 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (UPGRADED to 22)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # حل مشكلة الخطأ في الصورة 24
+          node-version: '22'
 
-      - name: Setup Java 17
+      - name: Setup Java 17 (The Correct Version)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '17' # تم التغيير من 21 إلى 17 لحل خطأ الصورة 26
 
-      - name: Full Build & Permissions Fix
+      - name: Fix Permissions & Connectivity
         run: |
-          # تنظيف وبدء جديد
-          rm -rf android package.json package-lock.json
-          
-          # إنشاء ملف التبعات
+          # تنظيف وبدء بناء نظيف
+          rm -rf android package.json
           echo '{"name":"app","version":"1.0.0","dependencies":{"@capacitor/cli":"latest","@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
-          
-          # تثبيت الأدوات (الآن ستعمل لأن Node.js 22 موجود)
           npm install --force
           
-          # بناء هيكل الأندرويد
+          # تهيئة أندرويد
           npx cap init Abu-Zahra com.example.abuzahra --web-dir www || true
           npx cap add android
           
-          # --- تفعيل الإنترنت والأذونات قسرياً ---
+          # --- تفعيل الأذونات والإنترنت الحقيقي ---
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -70,13 +66,12 @@ jobs:
           </manifest>
           EOF
 
-          # حل تعارض المكتبات (الصورة 23)
-          echo "android.useAndroidX=true" >> android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
+          # ضبط إعدادات الجافا داخل المشروع لتطابق الإصدار 17
+          echo "org.gradle.java.home=/usr/lib/jvm/zulu-17-amd64" >> android/gradle.properties
           
           npx cap sync android
 
-      - name: Production APK
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
@@ -85,5 +80,5 @@ jobs:
       - name: Upload Final APK
         uses: actions/upload-artifact@v4
         with:
-          name: Abu-Zahra-Ready
+          name: Abu-Zahra-Final-Fixed
           path: android/app/build/outputs/apk/debug/app-debug.apk
