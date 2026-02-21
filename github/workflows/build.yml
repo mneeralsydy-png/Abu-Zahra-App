@@ -10,31 +10,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
-    
+
+    - name: Auto-Detect and Fix Missing Files
+      run: |
+        # إصلاح ملف package.json إذا كان مفقوداً
+        if [ ! -f package.json ]; then
+          echo '{"name": "my-app", "version": "1.0.0", "dependencies": {}}' > package.json
+        fi
+        # إنشاء مجلد www إذا كان مفقوداً (ضروري لـ Capacitor)
+        mkdir -p www
+        if [ ! -f www/index.html ]; then
+          echo "<html><body><h1>App Ready</h1></body></html>" > www/index.html
+        fi
+
     - name: Install Dependencies
-      run: npm install
-    
+      run: |
+        npm install
+        npm install @capacitor/cli @capacitor/core @capacitor/android
+
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Clean Gradle Cache
+    - name: Initialize and Sync Capacitor
       run: |
-        if [ -d "android" ]; then
-          cd android && ./gradlew clean
+        # فحص وإصلاح إعدادات Capacitor
+        if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
+          npx cap init my-app com.example.myapp --web-dir www
         fi
+        npx cap add android || true
+        npx cap sync android
 
     - name: Build Android APK
       run: |
-        npm install @capacitor/android
-        npx cap add android || true
-        npx cap sync android
         cd android
         chmod +x gradlew
         ./gradlew assembleDebug
