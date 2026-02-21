@@ -37,7 +37,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # تم الضبط على 17 لحل خطأ "invalid source release"
+          java-version: '21' # تم التحديث إلى 21 لحل خطأ invalid source release
 
       - name: Initialize Android Project
         run: |
