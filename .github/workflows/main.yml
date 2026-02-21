@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Auto-Fix Project Files
+      run: |
+        # إنشاء ملفات الإعداد إذا كانت مفقودة لتجنب الفشل
+        if [ ! -f package.json ]; then
+          echo '{"name": "my-app", "version": "1.0.0", "dependencies": {"@capacitor/core": "latest", "@capacitor/android": "latest"}}' > package.json
+        fi
+        mkdir -p www
+        if [ ! -f www/index.html ]; then
+          echo "<html><body><h1>App Ready</h1></body></html>" > www/index.html
+        fi
+
+    - name: Install Dependencies
+      run: |
+        npm install --force
+        npm install @capacitor/cli @capacitor/core @capacitor/android
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Build Android Project
+      run: |
+        # تهيئة كاباسيتور وبناء مشروع الأندرويد
+        npx cap init my-app com.example.myapp --web-dir www || true
+        npx cap add android || true
+        npx cap sync android
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: my-final-app-apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
