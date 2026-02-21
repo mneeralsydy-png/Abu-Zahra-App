@@ -1,4 +1,4 @@
-name: Abu Zahra App Super Ultimate Fix
+name: Abu Zahra App Final Victory
 
 on:
   push:
@@ -13,28 +13,33 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java 21
+      - name: Setup Node.js (UPGRADED to 22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # حل مشكلة الخطأ في الصورة 24
+
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '17'
 
-      - name: One-Step Comprehensive Build
+      - name: Full Build & Permissions Fix
         run: |
-          # 1. تنظيف شامل للأخطاء السابقة (صور 17، 21، 23)
-          rm -rf android package-lock.json node_modules
+          # تنظيف وبدء جديد
+          rm -rf android package.json package-lock.json
           
-          # 2. إنشاء ملف تبعات نظيف يتجاهل المكتبات المفقودة (صورة 18)
+          # إنشاء ملف التبعات
           echo '{"name":"app","version":"1.0.0","dependencies":{"@capacitor/cli":"latest","@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
           
-          # 3. تثبيت الأدوات وبناء المشروع في خطوة واحدة لضمان عدم ضياع npx (صورة 21)
+          # تثبيت الأدوات (الآن ستعمل لأن Node.js 22 موجود)
           npm install --force
           
-          # 4. تهيئة الأندرويد
+          # بناء هيكل الأندرويد
           npx cap init Abu-Zahra com.example.abuzahra --web-dir www || true
           npx cap add android
           
-          # 5. تفعيل الأذونات والإنترنت قسرياً (حل مشكلة الاتصال والأذونات)
+          # --- تفعيل الإنترنت والأذونات قسرياً ---
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -65,23 +70,20 @@ jobs:
           </manifest>
           EOF
 
-          # 6. حل مشكلة Duplicate Class (صورة 17 و 23)
+          # حل تعارض المكتبات (الصورة 23)
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
-          sed -i '/dependencies {/a \    constraints { implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10") }' android/app/build.gradle
           
-          # 7. المزامنة النهائية
           npx cap sync android
 
-      - name: Final APK Production
+      - name: Production APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean
           ./gradlew assembleDebug
 
-      - name: Upload Final Working APK
+      - name: Upload Final APK
         uses: actions/upload-artifact@v4
         with:
-          name: Abu-Zahra-Working-App
+          name: Abu-Zahra-Ready
           path: android/app/build/outputs/apk/debug/app-debug.apk
