@@ -16,21 +16,21 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
 
-    - name: Auto-Detect and Fix Missing Files
+    - name: Auto-Fix Files and Directories
       run: |
-        # إصلاح ملف package.json إذا كان مفقوداً
+        # إنشاء ملف package.json إذا لم يكن موجوداً
         if [ ! -f package.json ]; then
           echo '{"name": "my-app", "version": "1.0.0", "dependencies": {}}' > package.json
         fi
-        # إنشاء مجلد www إذا كان مفقوداً (ضروري لـ Capacitor)
+        # إنشاء مجلد www الأساسي
         mkdir -p www
         if [ ! -f www/index.html ]; then
           echo "<html><body><h1>App Ready</h1></body></html>" > www/index.html
         fi
 
-    - name: Install Dependencies
+    - name: Install Tools and Repair
       run: |
         npm install
         npm install @capacitor/cli @capacitor/core @capacitor/android
@@ -41,20 +41,24 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Initialize and Sync Capacitor
+    - name: Initialize Capacitor if needed
       run: |
-        # فحص وإصلاح إعدادات Capacitor
         if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
           npx cap init my-app com.example.myapp --web-dir www
         fi
         npx cap add android || true
         npx cap sync android
 
-    - name: Build Android APK
+    - name: Final Build Check
       run: |
-        cd android
-        chmod +x gradlew
-        ./gradlew assembleDebug
+        if [ -d "android" ]; then
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        else
+          echo "Error: Android folder not created!"
+          exit 1
+        fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
