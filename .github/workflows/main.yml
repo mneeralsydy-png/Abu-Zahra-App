@@ -1,4 +1,4 @@
-name: Abu Zahra App Final Success
+name: Abu Zahra App Permissions & Network Fix
 
 on:
   push:
@@ -18,49 +18,69 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Fix Project Structure
+      - name: Reset & Install
         run: |
-          # حذف أي ملفات أندرويد قديمة تسبب التعارض المذكور في الصورة 17
           rm -rf android
-          # إنشاء package.json بسيط جداً لتجنب خطأ 404 في الصورة 16
-          echo '{"name":"abu-zahra-app","version":"1.0.0","dependencies":{"@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
-
-      - name: Install Essential Tools
-        run: |
+          echo '{"name":"abu-zahra-app","version":"1.0.0","dependencies":{"@capacitor/core":"latest","@capacitor/android":"latest","@capacitor/network":"latest","@capacitor/contacts":"latest"}}' > package.json
           npm install --force
-          npm install @capacitor/cli @capacitor/core @capacitor/android
 
-      - name: Setup Java 21 (Required by Gradle)
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Initialize and Fix Conflicts
+      - name: Bridge & Permissions Fix
         run: |
-          # ربط مجلد www الخاص بك
           npx cap init Abu-Zahra com.example.abuzahra --web-dir www || true
           npx cap add android
           
-          # إجبار أندرويد على توحيد المكتبات (حل جذري للصورة 17)
+          # --- الجزء الأهم: تفعيل صلاحيات الإنترنت والأسماء والاتصال ---
+          cat <<EOF > android/app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.READ_CONTACTS" />
+              <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="Abu Zahra"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:supportsRtl="true"
+                  android:usesCleartextTraffic="true" 
+                  android:theme="@style/AppTheme">
+                  <activity
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+                      android:name="com.example.abuzahra.MainActivity"
+                      android:label="Abu Zahra"
+                      android:theme="@style/AppTheme.NoActionBarLaunch"
+                      android:launchMode="singleTop"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # تفعيل خاصية الاتصال عبر الإنترنت غير المشفر (لضمان عمل الروابط)
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # أمر سحري لإجبار Gradle على تجاهل النسخ المكررة من Kotlin
-          sed -i '/dependencies {/a \    constraints { implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10") { because("Force same version to prevent duplicate classes") } }' android/app/build.gradle
-          
           npx cap sync android
 
-      - name: Ultimate Build
+      - name: Final Build
         run: |
           cd android
           chmod +x gradlew
-          # تنظيف شامل قبل البناء
-          ./gradlew clean
           ./gradlew assembleDebug
 
-      - name: Upload Working APK
+      - name: Upload Final APK
         uses: actions/upload-artifact@v4
         with:
-          name: Abu-Zahra-Final-Working
+          name: Abu-Zahra-Full-Permissions
           path: android/app/build/outputs/apk/debug/app-debug.apk
