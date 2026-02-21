@@ -1,4 +1,4 @@
-name: Build Android APK Final
+name: Build Android APK Final Fix
 
 on:
   push:
@@ -18,14 +18,15 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Create Clean Project Structure
+      - name: Clean and Create Structure
         run: |
-          # إنشاء ملفات أساسية نظيفة لتجنب أخطاء المكتبات المفقودة
+          # مسح أي مخلفات قديمة لضمان بناء نظيف
+          rm -rf android
           echo '{"name": "my-app", "version": "1.0.0", "dependencies": {"@capacitor/core": "latest", "@capacitor/android": "latest"}}' > package.json
           mkdir -p www
           echo "<html><body><h1>App Ready</h1></body></html>" > www/index.html
 
-      - name: Install Capacitor Tools
+      - name: Install Tools
         run: |
           npm install --force
           npm install @capacitor/cli @capacitor/core @capacitor/android
@@ -36,11 +37,14 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Build Android APK
+      - name: Create and Sync Android Project
         run: |
           npx cap init my-app com.example.myapp --web-dir www || true
-          npx cap add android || true
+          npx cap add android
           npx cap sync android
+
+      - name: Final Build APK
+        run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
@@ -48,5 +52,5 @@ jobs:
       - name: Upload APK File
         uses: actions/upload-artifact@v4
         with:
-          name: my-final-apk
+          name: final-app-release
           path: android/app/build/outputs/apk/debug/app-debug.apk
