@@ -1,4 +1,4 @@
-name: Build Android APK Comprehensive Fix
+name: Build Android APK Final
 
 on:
   push:
@@ -12,55 +12,53 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Force Clean Project Structure
+      - name: Prepare Real Files (From Your www Folder)
         run: |
-          # مسح شامل لأي إعدادات قديمة تسبب التعارض
+          # حذف مجلد أندرويد فقط لإعادة بنائه بنظافة
           rm -rf android
-          rm -rf www
-          echo '{"name":"app","version":"1.0.0","dependencies":{"@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
-          mkdir -p www
-          echo "<html><body><h1>App Build Successful</h1></body></html>" > www/index.html
+          
+          # التأكد من وجود ملف package.json لكي يعمل Capacitor
+          if [ ! -f package.json ]; then
+            echo '{"name":"abu-zahra-app","version":"1.0.0","dependencies":{"@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
+          fi
 
-      - name: Install Core Tools
+      - name: Install Capacitor Tools
         run: |
           npm install --force
           npm install @capacitor/cli @capacitor/core @capacitor/android
 
-      - name: Setup Java 21 (Fix for Image 52)
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21' # تم التحديث لـ 21 لإنهاء خطأ invalid source release
+          java-version: '21'
 
-      - name: Initialize and Heavy Repair
+      - name: Build Android Project
         run: |
+          # استخدام مجلد www الموجود أصلاً في مستودعك
           npx cap init Abu-Zahra com.example.abuzahra --web-dir www || true
           npx cap add android
           
-          # حل مشكلة التكرار (Duplicate Class) الظاهرة في الصورة 53
+          # حل تعارض المكتبات وتفعيل التوافق
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # إجبار Gradle على استخدام نسخة واحدة من مكتبات Kotlin المتصارعة
-          sed -i '/dependencies {/a \    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.9.10"))' android/app/build.gradle
-          
           npx cap sync android
 
-      - name: Ultimate Build APK
+      - name: Generate Final APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean
-          # استخدام فلاج لتجاهل تعارض المكتبات الصغير واستمرار البناء
-          ./gradlew assembleDebug -Pandroid.plugin.validation.enabled=false
+          ./gradlew assembleDebug
 
-      - name: Upload Final APK
+      - name: Upload Your App
         uses: actions/upload-artifact@v4
         with:
-          name: Abu-Zahra-App
+          name: Abu-Zahra-Real-App
           path: android/app/build/outputs/apk/debug/app-debug.apk
