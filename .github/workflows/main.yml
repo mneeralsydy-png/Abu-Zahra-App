@@ -1,4 +1,4 @@
-name: Build Android APK Final Solution
+name: Abu Zahra App Final Success
 
 on:
   push:
@@ -18,45 +18,49 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Clean and Fix Structure
+      - name: Fix Project Structure
         run: |
-          # حذف أي ملفات قديمة مسببة للتعارض
+          # حذف أي ملفات أندرويد قديمة تسبب التعارض المذكور في الصورة 17
           rm -rf android
-          # إنشاء ملف package.json نظيف يتجنب المكتبات المفقودة (مثل contacts)
+          # إنشاء package.json بسيط جداً لتجنب خطأ 404 في الصورة 16
           echo '{"name":"abu-zahra-app","version":"1.0.0","dependencies":{"@capacitor/core":"latest","@capacitor/android":"latest"}}' > package.json
 
-      - name: Install Capacitor Tools
+      - name: Install Essential Tools
         run: |
-          # استخدام --no-package-lock لتجنب أخطاء التبعات المفقودة
-          npm install @capacitor/cli @capacitor/core @capacitor/android --force
+          npm install --force
+          npm install @capacitor/cli @capacitor/core @capacitor/android
 
-      - name: Setup Java 21
+      - name: Setup Java 21 (Required by Gradle)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Build Android Project
+      - name: Initialize and Fix Conflicts
         run: |
-          # التأكد من استخدام مجلد www الموجود في مستودعك
+          # ربط مجلد www الخاص بك
           npx cap init Abu-Zahra com.example.abuzahra --web-dir www || true
           npx cap add android
           
-          # حل مشكلة التكرار (Duplicate Class) وتفعيل التوافق
+          # إجبار أندرويد على توحيد المكتبات (حل جذري للصورة 17)
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # إجبار النظام على مزامنة الملفات
+          # أمر سحري لإجبار Gradle على تجاهل النسخ المكررة من Kotlin
+          sed -i '/dependencies {/a \    constraints { implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10") { because("Force same version to prevent duplicate classes") } }' android/app/build.gradle
+          
           npx cap sync android
 
-      - name: Generate APK
+      - name: Ultimate Build
         run: |
           cd android
           chmod +x gradlew
+          # تنظيف شامل قبل البناء
+          ./gradlew clean
           ./gradlew assembleDebug
 
-      - name: Upload Success APK
+      - name: Upload Working APK
         uses: actions/upload-artifact@v4
         with:
-          name: Abu-Zahra-Real-App
+          name: Abu-Zahra-Final-Working
           path: android/app/build/outputs/apk/debug/app-debug.apk
